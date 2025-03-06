@@ -7,9 +7,10 @@ The webhook automatically updates Kubernetes resources with specified annotation
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Configuration](#configuration)
-- [How to test locally](#how-to-test-locally)
-- [How to run in Kubernetes](#how-to-run-in-kubernetes)
-- [Learn more](#learn-more)
+- [How to test locally](#how-to-test-loaclly)
+- [How to run in Kubernetes](#how-to-run-in-Kubernetes)
+- [Deployment](#deployment)
+- [How It Works](#how-it-works)
 - [License](#license)
 
 ## Overview
@@ -108,7 +109,7 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: cert-manager.io/v1
    kind: ClusterIssuer
    metadata:
-     name: selfsigned-issuer
+     name: az-lb-in-anno-webhook-root-issuer
    spec:
      selfSigned: {}
    ```
@@ -118,35 +119,35 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: cert-manager.io/v1
    kind: Certificate
    metadata:
-     name: my-selfsigned-cert
-     namespace: default
+     name: az-lb-in-anno-webhook-selfsigned-ca
    spec:
-     commonName: my-selfsigned-cert
+     commonName: az-lb-in-anno-webhook-selfsigned-ca
      isCA: true
      issuerRef:
        group: cert-manager.io
        kind: ClusterIssuer
-       name: selfsigned-issuer
+       name: az-lb-in-anno-webhook-root-issuer
      privateKey:
        algorithm: ECDSA
        size: 256
-     secretName: root-cert-secret
+     secretName: az-lb-in-anno-webhook-root-secret
    ```
 
    c. secret  
    ```yaml
-   You will get the secret from the certificate (my-selfsigned-cert) above
+   You will get the secret (az-lb-in-anno-webhook-root-secret) from the certificate (az-lb-in-anno-webhook-selfsigned-ca) above
    ```
 
-   d. cluster issuer  
+   d. issuer  
    ```yaml
    apiVersion: cert-manager.io/v1
-   kind: ClusterIssuer
+   kind: Issuer
    metadata:
-     name: mutating-webhook-example-issuer
+     name: az-lb-in-anno-webhook-issuer
+     namespace: default
    spec:
      ca:
-       secretName: root-cert-secret
+       secretName: az-lb-in-anno-webhook-root-secret
    ```
 
    e. certificate (mutating webhook ca)
@@ -154,28 +155,27 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: cert-manager.io/v1
    kind: Certificate
    metadata:
-     name: mutating-webhook-example-cert
-     namespace: default
+     name: az-lb-in-anno-webhook-cert
    spec:
-     commonName: mutating-webhook-example.default.svc
+     commonName: az-lb-in-anno-webhook.default.svc
      dnsNames:
-       - mutating-webhook-example.default.svc
-       - mutating-webhook-example.example.com
+       - az-lb-in-anno-webhook.default.svc
+       - az-lb-in-anno-webhook.west.com
      issuerRef:
        group: cert-manager.io
-       kind: ClusterIssuer
-       name: mutating-webhook-example-issuer
+       kind: Issuer
+       name: az-lb-in-anno-webhook-issuer
      privateKey:
        algorithm: ECDSA
        size: 256
-     secretName: mutating-webhook-example-secret
+     secretName: az-lb-in-anno-webhook-cert-secret
      usages:
        - server auth
    ```
   
    f. secret
    ```yaml
-   You will get the secret from the certificate (mutating-webhook-example-cert) above
+   You will get the secret (az-lb-in-anno-webhook-cert-secret) from the certificate (az-lb-in-anno-webhook-cert) above
    ```
 
 2. **Configure the mutating webhook**
@@ -185,16 +185,16 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: admissionregistration.k8s.io/v1
    kind: MutatingWebhookConfiguration
    metadata:
-     name: mutating-webhook-example
+     name: az-lb-in-anno-webhook
      labels:
-       app: mutating-webhook-example
+       app: az-lb-in-anno-webhook
      annotations:
-       cert-manager.io/inject-ca-from: default/mutating-webhook-example-cert
+       cert-manager.io/inject-ca-from: default/az-lb-in-anno-webhook-cert
    webhooks:
-     - name: mutating-webhook-example.example.com
+     - name: az-lb-in-anno-webhook.west.com
        clientConfig:
          service:
-           name: mutating-webhook-example
+           name: az-lb-in-anno-webhook
            namespace: default
            path: "/mutate"
        rules:
@@ -213,15 +213,15 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: v1
    kind: Service
    metadata:
-     name: mutating-webhook-example
+     name: az-lb-in-anno-webhook
      labels:
-       app: mutating-webhook-example
+       app: az-lb-in-anno-webhook
    spec:
      ports:
      - port: 443
        targetPort: 443
      selector:
-       app: mutating-webhook-example
+       app: az-lb-in-anno-webhook
    ```
 
    c. serviceaccount
@@ -229,9 +229,9 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: v1
    kind: ServiceAccount
    metadata:
-     name: mutating-webhook-example-sa
+     name: az-lb-in-anno-webhook-sa
      labels:
-       app: mutating-webhook-example
+       app: az-lb-in-anno-webhook
    ```
 
    d. deployment 
@@ -239,37 +239,37 @@ Before running the webhook server, configure the following parameters in your co
    apiVersion: apps/v1
    kind: Deployment
    metadata:
-     name: mutating-webhook-example
+     name: az-lb-in-anno-webhook
      labels:
-       app: mutating-webhook-example
+       app: az-lb-in-anno-webhook
    spec:
      replicas: 1
      selector:
        matchLabels:
-         app: mutating-webhook-example
+         app: az-lb-in-anno-webhook
      template:
        metadata:
          labels:
-           app: mutating-webhook-example
+           app: az-lb-in-anno-webhook
        spec:
-         serviceAccount: mutating-webhook-example-sa
+         serviceAccount: az-lb-in-anno-webhook-sa
          volumes:
-           - name: mutating-webhook-example-tls
+           - name: az-lb-in-anno-webhook-tls
              secret:
-               secretName: mutating-webhook-example-secret
+               secretName: az-lb-in-anno-webhook-cert-secret
          containers:
-           - name: mutating-webhook-example
-             image: #the REPOSITORY and TAG you upload   
+           - name: az-lb-in-anno-webhook
+             image: iotplatformdev.azurecr.io/mutating-webhook:map #map version for key in OOO/OOO format can't directly add to patch operation path
              imagePullPolicy: Always
              args:
                - -tlsCertFile=/webhook/certs/tls.crt
                - -tlsKeyFile=/webhook/certs/tls.key
                - -kind=Service
                - -type=LoadBalancer
-               - -mutationKey=#the annotation key you want to add
-               - -mutationValue=#the annotation value you want to add
+               - -mutationKey=service.beta.kubernetes.io/azure-load-balancer-internal
+               - -mutationValue=true
              volumeMounts:
-               - name: mutating-webhook-example-tls
+               - name: az-lb-in-anno-webhook-tls
                  mountPath: /webhook/certs
                  readOnly: true
    ```
@@ -285,3 +285,5 @@ Before running the webhook server, configure the following parameters in your co
     https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#mutatingwebhook-v1-admissionregistration-k8s-io
 - Cert manager:\
     https://cert-manager.io/docs/configuration/selfsigned/
+- How to create a patch operation:\
+    https://www.rfc-editor.org/rfc/rfc6902.html
