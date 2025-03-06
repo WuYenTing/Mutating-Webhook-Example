@@ -1,0 +1,57 @@
+{
+  "kind": "AdmissionReview",
+  "apiVersion": "admission.k8s.io/v1",
+  "request": {
+    "uid": "XXXXXXXXXXXXX",
+    "kind": {
+      "group": "v1",
+      "version": "v1",
+      "kind": "Service"
+    },
+    "resource": {
+      "group": "",
+      "version": "v1",
+      "resource": "services"
+    },
+    "subResource": null,
+    "name": "example-service",
+    "namespace": "example-namespace",
+    "operation": "CREATE",
+    "userInfo": {
+      "username": "example-username",
+      "uid": "XXXXXXXXXXXXXX",
+      "groups": ["group1", "group2"],
+      "extra": {
+        "some-extras": ["extra-info"]
+      }
+    },
+    "object": {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "example-name",
+        "namespace": "example-namespace",
+        "labels": {
+        },
+        "annotations": {
+          "annotation-mutation-webhook-example": "true"
+        }
+      },
+      "spec": {
+        "type": "LoadBalancer",
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 80,
+            "targetPort": 8080
+          }
+        ],
+        "selector": {
+          "app": "example-app"
+        }
+      }
+    },
+    "oldObject": null, 
+    "dryRun": false 
+  }
+}
