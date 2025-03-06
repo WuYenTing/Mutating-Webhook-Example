@@ -101,7 +101,7 @@ func createPatch(availableAnnotations map[string]string, addannotations map[stri
 	return json.Marshal(patch)
 }
 
-# Define the mutate policy here
+// Define the mutate policy here
 func (whsvr *WebhookServer) mutate(ar *admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	req := ar.Request
 	var (
