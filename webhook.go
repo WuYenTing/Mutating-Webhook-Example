@@ -90,10 +90,8 @@ func createPatch(availableAnnotations map[string]string, addannotations map[stri
 				Op:    "add",
 				Path:  "/metadata/annotations/" + key,
 				Value: value,
-				// map[string]string method below is for annotation key string with slash ex. XXXX/XXXX
-				// Op:    "add",
-				// Path:  "/metadata/annotations",
-				// Value: map[string]string{key: value}, 
+				// To correctly update annotations with keys that contain slashes in JSON Patch, you should encode the slashes in the key.
+				// The standard way to handle this is to use the ~1 sequence for / and ~0 for ~ (tilde), which are defined by the JSON Pointer specification. 
 			})
 		}
 	}
