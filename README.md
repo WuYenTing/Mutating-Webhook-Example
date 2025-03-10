@@ -257,7 +257,7 @@ Before running the webhook server, configure the following parameters in your co
                secretName: annotation-mutating-webhook-example-cert-secret
          containers:
            - name: annotation-mutating-webhook-example
-             image: ap95071/annotation-mutating-webhook-example:latest  #change the tag latest to map for annotation key string with slash ex. XXXX/XXXX
+             image: ap95071/annotation-mutating-webhook-example:latest
              imagePullPolicy: Always
              args:
                - -tlsCertFile=/webhook/certs/tls.crt
